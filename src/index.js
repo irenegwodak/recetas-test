@@ -53,7 +53,7 @@ async function getConnection() {
     host: process.env.HOST,
     user: process.env.DBUSER,
     password: process.env.PASS,
-    // database: process.env.DATABASE, /* Comentado para poder elegir bases de datos distintas en las querys */
+    database: process.env.DATABASE,
   });
   await connection.connect();
 
@@ -67,7 +67,7 @@ async function getConnection() {
 server.get('/recetas', async (req, res) => {
   console.log('Haciendo petición a la base de datos');
 
-  let queryAllRecipes = 'SELECT * FROM recetas_db.recetas';
+  let queryAllRecipes = 'SELECT * FROM recetas';
 
   const connection = await getConnection();
   const [results] = await connection.query(queryAllRecipes);
@@ -90,7 +90,7 @@ server.get('/recetas/:id', authenticateToken, async (req, res) => {
   let status = 0;
   let response = {};
 
-  const queryIdRecipe = `SELECT * FROM recetas_db.recetas WHERE id = ?;`;
+  const queryIdRecipe = `SELECT * FROM recetas WHERE id = ?;`;
 
   const connection = await getConnection();
   const [recipe] = await connection.query(queryIdRecipe, [paramsId]);
@@ -201,7 +201,7 @@ server.put('/recetas/:id', async (req, res) => {
     //Comprobar si existe la receta en db
     console.log('Comprobando si existe receta');
 
-    const queryIfRecipeExists = `SELECT * FROM recetas_db.recetas WHERE id = ${paramsId};`;
+    const queryIfRecipeExists = `SELECT * FROM recetas WHERE id = ${paramsId};`;
 
     const connection = await getConnection();
     const [previousRecipe] = await connection.query(queryIfRecipeExists);
@@ -246,14 +246,14 @@ server.put('/recetas/:id', async (req, res) => {
 });
 
 //Endpoint para eliminar una receta
-server.delete('/recetas/:id', async (req, res) => {
+server.delete('/recetas/:id', authenticateToken, async (req, res) => {
   console.log('Haciendo petición a la base de datos');
 
   const paramsId = req.params.id;
   let status = 0;
   let response = {};
 
-  const queryIdRecipe = 'SELECT * FROM recetas_db.recetas WHERE id = ?;';
+  const queryIdRecipe = 'SELECT * FROM recetas WHERE id = ?;';
 
   try {
     const connection = await getConnection();
@@ -266,11 +266,12 @@ server.delete('/recetas/:id', async (req, res) => {
       };
     } else {
       const queryDeleteRecipe =
-        'DELETE FROM recetas_db.recetas WHERE (id = ?);';
+        'DELETE FROM recetas WHERE (id = ?);';
       const [results] = await connection.query(queryDeleteRecipe, [paramsId]);
       status = 200;
       response = {
         success: true,
+        msg:`Receta de "${recipe[0].nombre}" eliminada`,
       };
     }
     connection.end();
@@ -298,7 +299,7 @@ server.post('/registro', async (req, res) => {
 
   //comprobar primero si el email ya existe en db
   const queryCheckIfEmailIsInDb =
-    'SELECT * FROM usuarios_db.usuarios WHERE email = ?;';
+    'SELECT * FROM usuarios WHERE email = ?;';
 
   try {
     const connection = await getConnection();
@@ -315,7 +316,7 @@ server.post('/registro', async (req, res) => {
     // Si no existe, crear token, añadir user a DB y devolver mensaje ok+token
     else {
       const queryAddUser =
-        'INSERT INTO usuarios_db.usuarios (nombre,email,password) VALUES (?,?,?)';
+        'INSERT INTO usuarios (nombre,email,password) VALUES (?,?,?)';
 
       let infoForToken = {
         nombre: nombre,
@@ -377,7 +378,7 @@ server.post('/registrodos', async (req, res) => {
   } else {
     //comprobar primero si el email ya existe en db
     const queryCheckIfEmailIsInDb =
-      'SELECT * FROM usuarios_db.usuarios WHERE email = ?;';
+      'SELECT * FROM usuarios WHERE email = ?;';
 
     try {
       const connection = await getConnection();
@@ -393,7 +394,7 @@ server.post('/registrodos', async (req, res) => {
       // Si no existe, crear token, añadir user a DB y devolver mensaje ok+token
       else {
         const queryAddUser =
-          'INSERT INTO usuarios_db.usuarios (nombre,email,password) VALUES (?,?,?)';
+          'INSERT INTO usuarios (nombre,email,password) VALUES (?,?,?)';
 
         let infoForToken = {
           nombre: nombre,
@@ -436,7 +437,7 @@ server.post('/login', async (req, res) => {
   //Comprobar si user existe en db
   try {
     const querySearchUser =
-      'SELECT * FROM usuarios_db.usuarios WHERE email = ?;';
+      'SELECT * FROM usuarios WHERE email = ?;';
     const connection = await getConnection();
     const [users] = await connection.query(querySearchUser, [email]);
     connection.end();
